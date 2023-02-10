@@ -10,11 +10,10 @@ from flask import Flask, request, jsonify, render_template
 
 
 
-app = Flask(__name__)
-
-
-
+# switch everything to loguru for structured logging
 handler = configure_logs()
+
+app = Flask(__name__)
 app.logger.addHandler(handler)
 
 # Load the Iris dataset
