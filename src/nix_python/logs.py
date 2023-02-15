@@ -60,6 +60,12 @@ def configure_logs():
             seen.add(name.split(".")[0])
             logging.getLogger(name).handlers = [intercept_handler]
 
-    logger.configure(handlers=[{"sink": sys.stdout, "serialize": JSON_LOGS}])
+    if JSON_LOGS:
+        logger.configure(
+                handlers=[ {"sink": sys.stdout, "serialize": True, "colorize":False}],
+                extra={"app":"loguru_demo"})
+    else:
+        logger.configure(handlers=[{"sink": sys.stdout, "serialize": False}])
+
 
     return intercept_handler

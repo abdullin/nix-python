@@ -9,7 +9,6 @@ from flask import Flask, request, jsonify, render_template
 
 
 
-
 # switch everything to loguru for structured logging
 handler = configure_logs()
 
@@ -52,19 +51,20 @@ model = BinaryClassifier()
 criterion = nn.BCELoss()
 optimizer = optim.SGD(model.parameters(), lr=0.1)
 
-# Train the model
-for epoch in range(100):
-    # Forward pass
-    y_pred = model(X)
-    loss = criterion(y_pred.squeeze(), y)
+with logger.contextualize(step="train"):
+    # Train the model
+    for epoch in range(100):
+        # Forward pass
+        y_pred = model(X)
+        loss = criterion(y_pred.squeeze(), y)
 
-    # Backward pass and optimization
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+        # Backward pass and optimization
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-    if epoch % 10 == 9:
-        logger.info('Epoch {epoch}, Loss: {loss}', epoch=epoch+1, loss=loss.item())
+        if epoch % 10 == 9:
+            logger.info('Epoch {epoch}, Loss: {loss}', epoch=epoch+1, loss=loss.item())
 
 
 handler = configure_logs()
@@ -78,21 +78,25 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Get the input features from the request
-    x = request.json['x']
 
-    # Convert the input to a PyTorch tensor
-    x = torch.tensor(x).float()
+    with logger.contextualize(step="predict"):
+        # Get the input features from the request
+        x = request.json['x']
 
-    # Use the model to make predictions
-    with torch.no_grad():
-        y_pred = model(x)
+        # Convert the input to a PyTorch tensor
+        x = torch.tensor(x).float()
 
-    # Convert the predictions to a binary class
-    y_pred = (y_pred.squeeze() > 0.5).int().item()
+        # Use the model to make predictions
+        with torch.no_grad():
+            y_pred = model(x)
 
-    # Return the predictions as a JSON response
-    return jsonify({'y_pred': y_pred})
+        # Convert the predictions to a binary class
+        y_pred = (y_pred.squeeze() > 0.5).int().item()
+
+        logger.info("Predict. Input: {input}, Output: {output}", input=x, output=y_pred)
+
+        # Return the predictions as a JSON response
+        return jsonify({'y_pred': y_pred})
 
 def serve():
     app.run()
